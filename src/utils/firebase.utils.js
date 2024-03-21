@@ -13,7 +13,11 @@ import {
     getFirestore,
     doc,
     getDoc,
-    setDoc
+    getDocs,
+    setDoc,
+    collection,
+    writeBatch,
+    query
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -31,12 +35,42 @@ const firebaseApp = initializeApp(firebaseConfig);
 const gooleProvider = new GoogleAuthProvider();
 gooleProvider.getCustomParameters({
     prompt: "select_account"
-})
+}) 
 
 export const auth = getAuth();
 export const signWithGooglePopup = () => signInWithPopup(auth, gooleProvider);
 
 export const db = getFirestore();
+
+// To send data in fire base
+export const addCollectionAndDocuments = async (collectionKey, objectsTooAdd) => {
+    const collectionRef = collection(db, collectionKey);
+    
+    const batch = writeBatch(db);    
+    
+    objectsTooAdd.forEach((Object) => {
+        const docRef = doc(collectionRef, Object.title.toLowerCase())
+        batch.set(docRef, Object);
+    })
+
+    await batch.commit();
+    console.log('done');
+
+}
+
+// To get the data in firebase
+export const getCategoriesAnDocuments = async () => {
+    const collectionRef = collection(db, 'categories');
+    const q = query(collectionRef);
+
+    const querySnapshot = await getDocs(q);
+    const categoryMap = querySnapshot.docs.reduce((acc, docSnapshot) => {
+        const { title, items} = docSnapshot.data();
+        acc[title.toLowerCase()] = items
+        return acc;
+    }, {});
+    return categoryMap;
+}
 
 export const createUserDocumentFromAuth = async (userAuth, additionalInformation = {}) => {
 
